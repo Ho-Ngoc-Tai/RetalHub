@@ -1,17 +1,9 @@
-import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { configureStore } from "@reduxjs/toolkit";
 import createSagaMiddleware from "redux-saga";
-import authReducer from "./reducers/authSlice";
-import userReducer from "./reducers/dashboard/userSlice";
 import { authSaga } from "./sagas/auth";
+import rootReducer from "./reducers";
 
 const sagaMiddleware = createSagaMiddleware();
-
-const rootReducer = combineReducers({
-  auth: authReducer,
-  dashboard: combineReducers({
-    user: userReducer,
-  }),
-});
 
 export const store = configureStore({
   reducer: rootReducer,

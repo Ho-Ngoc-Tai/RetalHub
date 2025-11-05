@@ -8,8 +8,8 @@ import {
   signinFailure,
   signinSuccess,
 } from "@/app/stores/reducers/authSlice";
-import { post } from "@/app/commons/ajax/client";
-import { NEXT_API_SIGNIN_ENDPOINT, NEXT_LOGOUT_ENDPOINT } from "@/app/routes/nextApi";
+import { NEXT_API_SIGNIN_ENDPOINT, NEXT_LOGOUT_ENDPOINT } from "@/routes/nextApi";
+import { post } from "@/app/commons/ajax/server";
 
 interface SigninPayload {
   email: string;
