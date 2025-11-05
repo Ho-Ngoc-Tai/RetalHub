@@ -1,86 +1,105 @@
-import { RootState } from "@/app/stores";
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
+import { RootState } from "@/app/stores";
 
-export interface AuthState {
-  token: string | null;
-  user: { id: string; email: string } | null;
-  loading: boolean;
+export interface SigninState {
+  isCalling: boolean;
+  isSuccess: boolean;
+  isError: boolean;
+  error: string | null;
+  data: unknown;
+  params: unknown;
+}
+
+export interface LogoutState {
+  isCalling: boolean;
+  isSuccess: boolean;
+  isError: boolean;
   error: string | null;
 }
 
-interface StateStyle {
-  login: AuthState
+interface AuthState {
+  signin: SigninState;
+  logout: LogoutState;
 }
 
-const initialState: StateStyle = {
-  login: {
-    token: null,
-    user: null,
-    loading: false,
+const initialState: AuthState = {
+  signin: {
+    isCalling: false,
+    isSuccess: false,
+    isError: false,
     error: null,
-  }
+    data: null,
+    params: null,
+  },
+  logout: {
+    isCalling: false,
+    isSuccess: false,
+    isError: false,
+    error: null,
+  },
 };
 
-const authSlice = createSlice({
+export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    loginRequest: (state, _action: PayloadAction<{ email: string; password: string }>) => {
-      state.login.loading = true;
-      state.login.error = null;
+    signinAction: (state, action: PayloadAction<unknown>) => {
+      state.signin.isCalling = true;
+      state.signin.isSuccess = false;
+      state.signin.isError = false;
+      state.signin.error = null;
+      state.signin.data = null;
+      state.signin.params = action.payload;
     },
-    loginSuccess: (
-      state,
-      action: PayloadAction<{ accessToken: string; user: { id: string; email: string } }>
-    ) => {
-      state.login.loading = false;
-      state.login.token = action.payload.accessToken;
-      state.login.user = action.payload.user;
+    signinSuccess: (state, action: PayloadAction<unknown>) => {
+      state.signin.isCalling = false;
+      state.signin.isSuccess = true;
+      state.signin.isError = false;
+      state.signin.data = action.payload;
     },
-    loginFailure: (state, action: PayloadAction<string>) => {
-      state.login.loading = false;
-      state.login.error = action.payload;
+    signinFailure: (state, action: PayloadAction<string | null>) => {
+      state.signin.isCalling = false;
+      state.signin.isSuccess = false;
+      state.signin.isError = true;
+      state.signin.data = null;
+      state.signin.error = action.payload;
     },
-    logout: (state) => {
-      state.login.token = null;
-      state.login.user = null;
+    logoutAction: (state) => {
+      state.logout.isCalling = true;
+      state.logout.isSuccess = false;
+      state.logout.isError = false;
+      state.logout.error = null;
+    },
+    logoutSuccess: (state) => {
+      state.logout.isCalling = false;
+      state.logout.isSuccess = true;
+      state.logout.isError = false;
+      state.signin.data = null;
+      state.signin.isSuccess = false;
+    },
+    logoutFailure: (state, action: PayloadAction<string | null>) => {
+      state.logout.isCalling = false;
+      state.logout.isSuccess = false;
+      state.logout.isError = true;
+      state.logout.error = action.payload;
     },
   },
 });
 
-export const { loginRequest, loginSuccess, loginFailure, logout } = authSlice.actions;
-export default authSlice.reducer;
+export const authReducer = authSlice.reducer;
+export const {
+  signinAction,
+  signinSuccess,
+  signinFailure,
+  logoutAction,
+  logoutSuccess,
+  logoutFailure,
+} = authSlice.actions;
 
-const selectAuthState = (state: RootState) => state.auth;
+const selectState = (state: RootState) => state.auth;
 
-// export const makeSelectAuthData = createSelector(
-//   [selectAuthState],
-//   (auth: AuthState) => ({
-//     token: auth.token,
-//     account: auth.user,
-//   })
-// );
+export const makeSelectSignin = createSelector(selectState, (state) => state.signin);
 
-// export const makeSelectAuthLoading = createSelector(
-//   [selectAuthState],
-//   (auth: AuthState) => auth.loading
-// );
-export const makeAuth = createSelector(
-  selectAuthState,
-  (state) => state.login
-);
+export const makeSelectLogout = createSelector(selectState, (state) => state.logout);
 
-// export const makeSelectAuthError = createSelector(
-//   [selectAuthState],
-//   (auth: AuthState) => auth.error
-// );
-
-// export const makeSelectIsAuthenticated = createSelector(
-//   [selectAuthState],
-//   (auth: AuthState) => !!auth.token
-// );
-
-// export const makeSelectAuthUser = createSelector(
-//   [selectAuthState],
-//   (auth: AuthState) => auth.user
-// );
+export default authReducer;

@@ -1,19 +1,61 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { call, put, takeLatest } from "redux-saga/effects";
-import { loginFailure, loginRequest, loginSuccess } from "@/app/stores/reducers/authSlice";
-import { loginApi } from "@/app/lib/auth/authApi";
+import {
+  logoutAction,
+  logoutFailure,
+  logoutSuccess,
+  signinAction,
+  signinFailure,
+  signinSuccess,
+} from "@/app/stores/reducers/authSlice";
+import { post } from "@/app/commons/ajax/client";
+import { NEXT_API_SIGNIN_ENDPOINT, NEXT_LOGOUT_ENDPOINT } from "@/app/routes/nextApi";
 
+interface SigninPayload {
+  email: string;
+  password: string;
+}
 
-function* handleLogin(action: ReturnType<typeof loginRequest>) {
+function* callApiLogin(action: ReturnType<typeof signinAction>): Generator<any, void, unknown> {
   try {
-    const response: { data: { accessToken: string; user: { id: string; email: string } } } =
-      yield call(loginApi, action.payload);
+    const payload = action.payload as SigninPayload;
+    const response: any = yield call(post, NEXT_API_SIGNIN_ENDPOINT, {
+      ...payload,
+    });
+    const result = response?.data ?? response;
 
-    yield put(loginSuccess(response.data));
-  } catch (err: any) {
-    yield put(loginFailure(err.response?.data?.message || err.message));
+    if (result?.code === 200 || result?.success) {
+      yield put(signinSuccess(result.data));
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    } else {
+      yield put(signinFailure(result));
+    }
+  } catch (error: any) {
+    yield put(signinFailure(error?.response?.data ?? error));
+  }
+}
+
+function* callApiLogout(): Generator<any, void, unknown> {
+  try {
+    const response: any = yield call(post, NEXT_LOGOUT_ENDPOINT, {});
+    const result = response?.data ?? response;
+
+    if (result?.code === 200 || result?.success) {
+      yield put(logoutSuccess());
+      if (typeof window !== "undefined") {
+        window.location.reload();
+      }
+    } else {
+      yield put(logoutFailure(result));
+    }
+  } catch (error: any) {
+    yield put(logoutFailure(error?.response?.data ?? error));
   }
 }
 
 export function* authSaga() {
-  yield takeLatest(loginRequest.type, handleLogin);
+  yield takeLatest(signinAction.type, callApiLogin);
+  yield takeLatest(logoutAction.type, callApiLogout);
 }

@@ -26,6 +26,12 @@
       "@/*": [
         "./src/*"
       ],
+      "@commons/*": [
+        "src/app/commons/*"
+      ],
+      "@routes/*": [
+        "src/app/routes/*"
+      ]
     }
   },
   "include": [
@@ -33,8 +39,9 @@
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    "src/app/components/providers/ReduxProvider"
-, "src/app/(main)/dashboard/pagetsx"  ],
+    "src/app/components/providers/ReduxProvider",
+    "src/app/(main)/dashboard/pagetsx"
+  ],
   "exclude": [
     "node_modules"
   ]
