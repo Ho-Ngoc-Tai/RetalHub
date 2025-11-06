@@ -1,15 +1,17 @@
-export const cookiesOption = (
-  expires?: number | null
-): {
-  expires?: Date; //seconds
-  domain: string;
+type CookieOptions = {
+  expires?: Date;
+  domain?: string;
   httpOnly: boolean;
-} => {
+};
+
+export const cookiesOption = (expires?: number | null): CookieOptions => {
+  const domain = process.env.COOKIE_DOMAIN;
+
   if (!expires || expires === 0) {
     // xoá cookie
     return {
       expires: new Date(0), // mốc 1970 => hết hạn ngay
-      domain: process.env.COOKIE_DOMAIN || ".vote.com",
+      ...(domain ? { domain } : {}),
       httpOnly: true,
     };
   }
@@ -18,13 +20,14 @@ export const cookiesOption = (
   // set cookie với thời hạn (seconds)
   return {
     expires: date, // exp là timestamp giây
-    domain: process.env.COOKIE_DOMAIN || ".vote.com",
+    ...(domain ? { domain } : {}),
     httpOnly: true,
   };
 };
 export const cookiesOptionWithoutHttpOnly = (expires: number | null | undefined) => {
+  const domain = process.env.COOKIE_DOMAIN;
   return {
     expires: expires ? new Date(expires || 0) : new Date(0),
-    domain: process.env.COOKIE_DOMAIN || ".vote.com",
+    ...(domain ? { domain } : {}),
   };
 };

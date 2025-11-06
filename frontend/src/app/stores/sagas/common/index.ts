@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import { get } from "@/app/commons/ajax/server";
+import { get } from "@/app/commons/ajax/client";
 import { adminProfileAction, adminProfileErrorAction, adminProfileSuccessAction } from "@/app/stores/reducers/common";
 import { NEXT_API_ADMIN_PROFILE_ENDPOINT } from "@/routes/nextApi";
 import { call, put, takeLatest } from "redux-saga/effects";

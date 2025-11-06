@@ -32,6 +32,12 @@
       ],
       "@routes/*": [
         "./src/app/routes/*"
+      ],
+      "@components/*": [
+        "./src/app/components/*"
+      ],
+      "@stores/*": [
+        "./src/app/stores/*"
       ]
     }
   },

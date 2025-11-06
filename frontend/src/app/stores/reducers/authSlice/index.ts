@@ -44,6 +44,7 @@ export const authSlice = createSlice({
   initialState,
   reducers: {
     signinAction: (state, action: PayloadAction<unknown>) => {
+      console.log("[authSlice] signinAction", action.payload);
       state.signin.isCalling = true;
       state.signin.isSuccess = false;
       state.signin.isError = false;
@@ -52,12 +53,14 @@ export const authSlice = createSlice({
       state.signin.params = action.payload;
     },
     signinSuccess: (state, action: PayloadAction<unknown>) => {
+      console.log("[authSlice] signinSuccess", action.payload);
       state.signin.isCalling = false;
       state.signin.isSuccess = true;
       state.signin.isError = false;
       state.signin.data = action.payload;
     },
     signinFailure: (state, action: PayloadAction<string | null>) => {
+      console.error("[authSlice] signinFailure", action.payload);
       state.signin.isCalling = false;
       state.signin.isSuccess = false;
       state.signin.isError = true;

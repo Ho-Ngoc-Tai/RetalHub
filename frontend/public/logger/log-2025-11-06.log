@@ -1,0 +1,22 @@
+2025-11-06T07:59:13.195Z info: [REQUEST] POST undefined//auth/login
+2025-11-06T07:59:13.201Z error: [ERROR undefined] Invalid URL - undefined
+2025-11-06T08:03:46.826Z info: [REQUEST] POST undefined//auth/login
+2025-11-06T08:03:46.828Z error: [ERROR undefined] Invalid URL - undefined
+2025-11-06T08:37:42.080Z info: [REQUEST] POST undefined//auth/login
+2025-11-06T08:37:42.085Z error: [ERROR undefined] Invalid URL - undefined
+2025-11-06T08:40:09.271Z info: [REQUEST] POST undefined//auth/login
+2025-11-06T08:40:09.272Z error: [ERROR undefined] Invalid URL - undefined
+2025-11-06T08:44:10.555Z info: [REQUEST] POST undefined//auth/login
+2025-11-06T08:44:10.562Z error: [ERROR undefined] Invalid URL - undefined
+2025-11-06T08:49:11.565Z error: [ERROR undefined] Cannot read properties of undefined (reading 'name') - undefined
+2025-11-06T09:00:41.710Z error: [ERROR undefined] Cannot read properties of undefined (reading 'name') - undefined
+2025-11-06T09:01:20.743Z error: [ERROR undefined] Cannot read properties of undefined (reading 'name') - undefined
+2025-11-06T09:09:28.498Z error: [ERROR undefined] Cannot read properties of undefined (reading 'name') - undefined
+2025-11-06T09:11:01.208Z error: [ERROR undefined] Cannot read properties of undefined (reading 'name') - undefined
+2025-11-06T09:11:21.881Z error: [ERROR undefined] Cannot read properties of undefined (reading 'name') - undefined
+2025-11-06T09:21:55.840Z info: [REQUEST] POST http://localhost:4000http://localhost:4000/auth/login
+2025-11-06T09:24:24.313Z info: [REQUEST] POST http://localhost:4000http://localhost:4000/auth/login
+2025-11-06T09:29:49.162Z info: [REQUEST] POST http://localhost:4000http://localhost:4000/auth/login
+2025-11-06T09:45:04.491Z info: [REQUEST] POST http://localhost:4000http://localhost:4000/auth/login
+2025-11-06T09:45:53.973Z info: [REQUEST] POST http://localhost:4000http://localhost:4000/auth/login
+2025-11-06T09:45:54.425Z info: [RESPONSE 201] {"success":true,"code":200,"message":"success","data":{"user":{"id":"690c21a14e8dd43c7088d365","email":"demo@gmail.com","name":null,"role":"tenant","createdAt":"2025-11-06T04:18:41.964Z"},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTBjMjFhMTRlOGRkNDNjNzA4OGQzNjUiLCJlbWFpbCI6ImRlbW9AZ21haWwuY29tIiwiaWF0IjoxNzYyNDIyMzU0LCJleHAiOjE3NjI0MjMyNTR9.qzFNvhsl240Qa8XO9By3Ngh8n2RNJrJ_D12-pr1wr3M","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTBjMjFhMTRlOGRkNDNjNzA4OGQzNjUiLCJlbWFpbCI6ImRlbW9AZ21haWwuY29tIiwiaWF0IjoxNzYyNDIyMzU0LCJleHAiOjE3NjMwMjcxNTR9.fH0r_ZAZBF88HnMCCnGDBSlrPKWEPRaHgAe5Ut0C0ck","deviceId":null}}

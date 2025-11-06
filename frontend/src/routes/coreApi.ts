@@ -1,5 +1,5 @@
 //CORE ENDPOINT API
-export const CORE_LOGIN_ENDPOINT = "admin/auth/signin";
+export const CORE_LOGIN_ENDPOINT = "auth/login";
 export const CORE_CHECK_REFRESH_TOKEN_ENDPOINT = "admin/refreshToken";
 export const CORE_LOGOUT_ENDPOINT = "auth/logout";
 export const CORE_MEMBER_LIST_ENDPOINT = "admin/member/list";

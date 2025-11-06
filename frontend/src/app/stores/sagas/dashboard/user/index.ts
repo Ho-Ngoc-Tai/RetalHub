@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { call, put, takeLatest } from "redux-saga/effects";
 import { api } from "@/app/lib/api";
 import { fetchUsersFailure, fetchUsersRequest, fetchUsersSuccess } from "@/app/stores/reducers/dashboard/userSlice";
