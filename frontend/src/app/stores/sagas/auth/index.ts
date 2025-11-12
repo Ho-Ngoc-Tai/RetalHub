@@ -12,7 +12,7 @@ import { NEXT_API_SIGNIN_ENDPOINT, NEXT_LOGOUT_ENDPOINT } from "@/routes/nextApi
 import { post } from "@/app/commons/ajax/client";
 
 interface SigninPayload {
-  username: string;
+  email: string;
   password: string;
 }
 
@@ -21,7 +21,7 @@ function* callApiLogin(action: ReturnType<typeof signinAction>): Generator<any, 
     const payload = action.payload as SigninPayload;
     console.log("[authSaga] callApiLogin", payload);
     const response: any = yield call(post, NEXT_API_SIGNIN_ENDPOINT, {
-      username: payload.username,
+      email: payload.email,
       password: payload.password,
     });
 

@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev --turbopack",
-    "dev:custom": "next dev --hostname l-admin.rentalhub.local --port 8025",
+    "dev": "next dev --hostname l-admin.rentalhub.local --port 8025",
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint"

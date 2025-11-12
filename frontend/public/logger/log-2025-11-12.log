@@ -1,0 +1,6 @@
+2025-11-12T09:50:08.865Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-12T09:50:31.563Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-12T09:50:39.371Z error: [ERROR 500] Request failed with status code 500 - http://l-api.rentalhub.local:4000/auth/login
+2025-11-12T09:51:01.580Z error: [ERROR 500] Request failed with status code 500 - http://l-api.rentalhub.local:4000/auth/login
+2025-11-12T11:03:55.479Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-12T11:04:25.618Z error: [ERROR 500] Request failed with status code 500 - http://l-api.rentalhub.local:4000/auth/login
