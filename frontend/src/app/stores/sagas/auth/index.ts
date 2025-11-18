@@ -8,6 +8,7 @@ import {
   signinFailure,
   signinSuccess,
 } from "@/app/stores/reducers/authSlice";
+import type { SigninSession } from "@/app/stores/reducers/authSlice";
 import { NEXT_API_SIGNIN_ENDPOINT, NEXT_LOGOUT_ENDPOINT } from "@/routes/nextApi";
 import { post } from "@/app/commons/ajax/client";
 
@@ -26,12 +27,21 @@ function* callApiLogin(action: ReturnType<typeof signinAction>): Generator<any, 
     });
 
     console.log("[authSaga] API response", response);
-    if (response?.code === 200 || response?.success) {
-      const payloadData = response?.data ?? response;
-      console.log("[authSaga] dispatch signinSuccess", payloadData);
-      yield put(signinSuccess(payloadData));
+    const result = response; // /api/auth/login trả về { code, success, data }
+
+    if (result?.code === 200 || result?.success) {
+      const data = result?.data ?? {};
+      const session: SigninSession = {
+        user: (data?.user as Record<string, unknown>) ?? null,
+        accessToken: typeof data?.accessToken === "string" ? data.accessToken : undefined,
+        refreshToken: typeof data?.refreshToken === "string" ? data.refreshToken : undefined,
+        deviceId: typeof data?.deviceId === "string" ? data.deviceId : null,
+      };
+
+      console.log("[authSaga] dispatch signinSuccess", session);
+      yield put(signinSuccess(session));
     } else {
-      const errorPayload = response?.data ?? response;
+      const errorPayload = result?.data ?? result;
       console.warn("[authSaga] dispatch signinFailure", errorPayload);
       yield put(signinFailure(errorPayload));
     }

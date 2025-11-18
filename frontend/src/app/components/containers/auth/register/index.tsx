@@ -55,18 +55,11 @@ export default function UsersPage() {
                             <TableCell>ID</TableCell>
                             <TableCell>Name</TableCell>
                             <TableCell>Email</TableCell>
-                            <TableCell>Phone</TableCell>
-                            <TableCell>Website</TableCell>
                             <TableCell>Action</TableCell>
                         </TableRow>
                     </TableHead>
                     <TableBody>
                         <TableRow>
-                            <TableCell>1</TableCell>
-                            <TableCell>Leanne Graham</TableCell>
-                            <TableCell>leanne@example.com</TableCell>
-                            <TableCell>123456789</TableCell>
-                            <TableCell>leanne.com</TableCell>
                             <TableCell>
                                 <Button
                                     variant="contained"
@@ -105,8 +98,6 @@ export default function UsersPage() {
                 >
                     <TextField label="Name" />
                     <TextField label="Email" />
-                    <TextField label="Phone" />
-                    <TextField label="Website" />
                 </DialogContent>
                 <DialogActions>
                     <Button>Hủy</Button>

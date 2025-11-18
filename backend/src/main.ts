@@ -6,6 +6,14 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
 
+  // Enable CORS so frontend can call this backend
+  const corsOrigin = process.env.CORS_ORIGIN || '*';
+  const originList = corsOrigin.split(',').map((o) => o.trim()).filter(Boolean);
+  app.enableCors({
+    origin: originList.length ? originList : true,
+    credentials: true,
+  });
+
   const config = new DocumentBuilder()
     .setTitle('Rental Accommodation API')
     .setDescription('The Rental Accommodation API description')

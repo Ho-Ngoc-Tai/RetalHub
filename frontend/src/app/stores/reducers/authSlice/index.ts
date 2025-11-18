@@ -1,13 +1,25 @@
 import { createSelector, createSlice, PayloadAction } from "@reduxjs/toolkit";
 import { RootState } from "@/app/stores";
 
+export interface SigninRequestPayload {
+  email: string;
+  password: string;
+}
+
+export interface SigninSession {
+  user: Record<string, unknown> | null;
+  accessToken?: string;
+  refreshToken?: string;
+  deviceId?: string | null;
+}
+
 export interface SigninState {
   isCalling: boolean;
   isSuccess: boolean;
   isError: boolean;
-  error: string | null;
-  data: unknown;
-  params: unknown;
+  error: unknown;
+  session: SigninSession | null;
+  params: SigninRequestPayload | null;
 }
 
 export interface LogoutState {
@@ -28,7 +40,7 @@ const initialState: AuthState = {
     isSuccess: false,
     isError: false,
     error: null,
-    data: null,
+    session: null,
     params: null,
   },
   logout: {
@@ -43,29 +55,29 @@ export const authSlice = createSlice({
   name: "auth",
   initialState,
   reducers: {
-    signinAction: (state, action: PayloadAction<unknown>) => {
+    signinAction: (state, action: PayloadAction<SigninRequestPayload>) => {
       console.log("[authSlice] signinAction", action.payload);
       state.signin.isCalling = true;
       state.signin.isSuccess = false;
       state.signin.isError = false;
       state.signin.error = null;
-      state.signin.data = null;
       state.signin.params = action.payload;
+      state.signin.session = null;
     },
-    signinSuccess: (state, action: PayloadAction<unknown>) => {
+    signinSuccess: (state, action: PayloadAction<SigninSession>) => {
       console.log("[authSlice] signinSuccess", action.payload);
       state.signin.isCalling = false;
       state.signin.isSuccess = true;
       state.signin.isError = false;
-      state.signin.data = action.payload;
+      state.signin.session = action.payload;
     },
-    signinFailure: (state, action: PayloadAction<string | null>) => {
+    signinFailure: (state, action: PayloadAction<unknown>) => {
       console.error("[authSlice] signinFailure", action.payload);
       state.signin.isCalling = false;
       state.signin.isSuccess = false;
       state.signin.isError = true;
-      state.signin.data = null;
       state.signin.error = action.payload;
+      state.signin.session = null;
     },
     logoutAction: (state) => {
       state.logout.isCalling = true;
@@ -77,8 +89,8 @@ export const authSlice = createSlice({
       state.logout.isCalling = false;
       state.logout.isSuccess = true;
       state.logout.isError = false;
-      state.signin.data = null;
       state.signin.isSuccess = false;
+      state.signin.session = null;
     },
     logoutFailure: (state, action: PayloadAction<string | null>) => {
       state.logout.isCalling = false;

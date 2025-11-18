@@ -66,20 +66,11 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (signin.isSuccess) {
-      console.log("[LoginPage] signin success", signin.data);
-      const accessToken = (signin.data as { accessToken?: string } | null)?.accessToken;
-      const refreshToken = (signin.data as { refreshToken?: string } | null)?.refreshToken;
-      if (accessToken) {
-        localStorage.setItem("accessToken", accessToken);
-      }
-      if (refreshToken) {
-        localStorage.setItem("refreshToken", refreshToken);
-      }
-
+      console.log("[LoginPage] signin success", signin.session);
       notify.show("Login successfully", "success");
       router.push("/dashboard");
     }
-  }, [notify, router, signin.data, signin.isSuccess]);
+  }, [notify, router, signin.isSuccess, signin.session]);
 
   const handleTogglePassword = () => {
     setShowPassword((prev) => !prev);

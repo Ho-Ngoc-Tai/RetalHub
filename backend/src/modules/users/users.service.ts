@@ -9,9 +9,18 @@ type CreateUserData = {
   refreshToken?: string | null;
 };
 
+type UpdateUserData = {
+  name?: string | null;
+  role?: string | null;
+};
+
 @Injectable()
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
+
+  async findAll() {
+    return this.prisma.user.findMany();
+  }
 
   async findById(id: string) {
     return this.prisma.user.findUnique({ where: { id } });
@@ -29,6 +38,13 @@ export class UsersService {
     await this.prisma.user.update({
       where: { id: userId },
       data: { refreshToken } as { refreshToken?: string | null },
+    });
+  }
+
+  async update(id: string, data: UpdateUserData) {
+    return this.prisma.user.update({
+      where: { id },
+      data,
     });
   }
 }

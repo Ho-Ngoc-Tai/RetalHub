@@ -1,6 +1,8 @@
 import { configureStore } from "@reduxjs/toolkit";
 import createSagaMiddleware from "redux-saga";
+import { all } from "redux-saga/effects";
 import { authSaga } from "./sagas/auth";
+import userSaga from "./sagas/dashboard/user";
 import rootReducer from "./reducers";
 
 const sagaMiddleware = createSagaMiddleware();
@@ -11,7 +13,14 @@ export const store = configureStore({
     getDefaultMiddleware({ thunk: false }).concat(sagaMiddleware),
 });
 
-sagaMiddleware.run(authSaga);
+function* rootSaga() {
+  yield all([
+    authSaga(),
+    userSaga(),
+  ]);
+}
+
+sagaMiddleware.run(rootSaga);
 
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;
