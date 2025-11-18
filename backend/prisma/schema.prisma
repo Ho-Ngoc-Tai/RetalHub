@@ -15,4 +15,21 @@ model User {
   name     String?
   role     String?  @default("tenant")
   createdAt DateTime @default(now())
+  posts    Post[]
+}
+
+model Post {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  title       String
+  description String
+  content     String
+  category    String   @default("General")
+  views       Int      @default(0)
+  status      String   @default("draft")
+  language    String   @default("vi")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  authorId String?  @db.ObjectId
+  author   User?    @relation(fields: [authorId], references: [id])
 }
