@@ -23,12 +23,15 @@ const CreatePost = () => {
                     setIsSubmitting(true);
                     setError(null);
 
-                    await api.post("/posts", {
-                        ...formData,
-                        status: "draft",
+                    const { scheduledFor, ...rest } = formData;
+                    const payload = {
+                        ...rest,
                         category: "General",
                         language: "vi",
-                    });
+                        ...(scheduledFor ? { scheduledFor } : {}),
+                    };
+
+                    await api.post("/posts", payload);
                     router.refresh();
                     router.push("/posts");
                 } catch (err: unknown) {
@@ -74,7 +77,7 @@ const CreatePost = () => {
                         Hủy
                     </Button>
                     <Button variant="contained" color="primary" type="submit" disabled={isSubmitting}>
-                        {isSubmitting ? "Đang lưu..." : "Lưu bài viết"}
+                        {isSubmitting ? "Đang đăng..." : "Đăng bài viết"}
                     </Button>
                 </Stack>
             </Box>

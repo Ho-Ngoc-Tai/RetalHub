@@ -43,7 +43,7 @@ export default function UsersPage() {
                             ),
                         }}
                     />
-                    <Button variant="contained">Thêm user</Button>
+                    <Button variant="contained">Add user</Button>
                 </Box>
             </Box>
 

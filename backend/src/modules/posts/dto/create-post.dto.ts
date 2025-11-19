@@ -1,4 +1,10 @@
-import { IsIn, IsOptional, IsString, MinLength } from 'class-validator';
+import {
+  IsDateString,
+  IsIn,
+  IsOptional,
+  IsString,
+  MinLength,
+} from 'class-validator';
 
 export class CreatePostDto {
   @IsString()
@@ -26,6 +32,14 @@ export class CreatePostDto {
   readonly language?: string;
 
   @IsOptional()
-  @IsIn(['draft', 'published', 'archived', 'scheduled'])
-  readonly status?: 'draft' | 'published' | 'archived' | 'scheduled';
+  @IsIn(['published', 'archived', 'scheduled'])
+  readonly status?: 'published' | 'archived' | 'scheduled';
+
+  @IsOptional()
+  @IsDateString()
+  readonly scheduledFor?: string;
+
+  @IsOptional()
+  @IsDateString()
+  readonly publishedAt?: string;
 }

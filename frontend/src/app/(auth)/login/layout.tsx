@@ -7,13 +7,9 @@ import theme from "@/app/theme";
 
 export default function RootLayout({ children }: { children: ReactNode }) {
     return (
-        <html lang="en">
-            <body>
-                <ThemeProvider theme={theme}>
-                    <CssBaseline />
-                    {children}
-                </ThemeProvider>
-            </body>
-        </html>
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            {children}
+        </ThemeProvider>
     );
 }

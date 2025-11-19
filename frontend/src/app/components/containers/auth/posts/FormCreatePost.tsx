@@ -1,6 +1,6 @@
 "use client";
 
-import { forwardRef, useImperativeHandle, useState } from "react";
+import { forwardRef, useEffect, useImperativeHandle, useState } from "react";
 import {
     Box,
     Typography,
@@ -8,13 +8,18 @@ import {
     Stack,
     Paper,
     InputAdornment,
+    Switch,
+    FormControlLabel,
+    FormHelperText,
 } from "@mui/material";
 import dynamic from "next/dynamic";
 import ArticleOutlinedIcon from "@mui/icons-material/ArticleOutlined";
 import TitleOutlinedIcon from "@mui/icons-material/Title";
 import NotesOutlinedIcon from "@mui/icons-material/Notes";
 import DescriptionOutlinedIcon from "@mui/icons-material/Description";
+import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import type { TiptapEditorProps } from "@/app/components/atom/TiptapEditor";
+import AtomDateTimePicker from "@/app/components/atom/AtomDateTimePicker";
 
 const TiptapEditor = dynamic<TiptapEditorProps>(
     () => import("@/app/components/atom/TiptapEditor").then((mod) => mod.TiptapEditor),
@@ -29,17 +34,38 @@ type FormCreatePostProps = {
 };
 
 export interface FormCreatePostHandle {
-    submitForm: () => { title: string; description: string; content: string } | null;
+    submitForm: () => {
+        title: string;
+        description: string;
+        content: string;
+        scheduledFor?: string;
+    } | null;
 }
+
+type FormErrors = {
+    title?: string;
+    description?: string;
+    content?: string;
+    scheduledFor?: string;
+};
 
 const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_, ref) => {
     const [content, setContent] = useState("");
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
-    const [errors, setErrors] = useState<{ title?: string; description?: string; content?: string }>({});
+    const [scheduleEnabled, setScheduleEnabled] = useState(false);
+    const [scheduledFor, setScheduledFor] = useState<Date | null>(null);
+    const [errors, setErrors] = useState<FormErrors>({});
+
+    useEffect(() => {
+        if (!scheduleEnabled) {
+            setScheduledFor(null);
+            setErrors((prev) => ({ ...prev, scheduledFor: undefined }));
+        }
+    }, [scheduleEnabled]);
 
     const validateForm = () => {
-        const newErrors: { title?: string; description?: string; content?: string } = {};
+        const newErrors: FormErrors = {};
         let isValid = true;
 
         if (!title.trim()) {
@@ -58,6 +84,16 @@ const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_,
             isValid = false;
         }
 
+        if (scheduleEnabled) {
+            if (!scheduledFor) {
+                newErrors.scheduledFor = "Vui lòng chọn thời gian xuất bản";
+                isValid = false;
+            } else if (scheduledFor <= new Date()) {
+                newErrors.scheduledFor = "Thời gian xuất bản phải nằm trong tương lai";
+                isValid = false;
+            }
+        }
+
         setErrors(newErrors);
         return isValid;
     };
@@ -65,7 +101,22 @@ const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_,
     useImperativeHandle(ref, () => ({
         submitForm: () => {
             if (validateForm()) {
-                return { title, description, content };
+                const payload: {
+                    title: string;
+                    description: string;
+                    content: string;
+                    scheduledFor?: string;
+                } = {
+                    title,
+                    description,
+                    content,
+                };
+
+                if (scheduleEnabled && scheduledFor) {
+                    payload.scheduledFor = scheduledFor.toISOString();
+                }
+
+                return payload;
             }
             return null;
         },
@@ -131,6 +182,56 @@ const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_,
                             ),
                         }}
                     />
+                </Stack>
+            </Paper>
+
+            <Paper
+                elevation={0}
+                sx={{
+                    p: 3,
+                    borderRadius: 3,
+                    border: "1px solid",
+                    borderColor: "divider",
+                    background: "linear-gradient(135deg, rgba(248,250,252,0.95), #ffffff)",
+                }}
+            >
+                <Stack spacing={2.5}>
+                    <Stack direction="row" spacing={2} alignItems="center">
+                        <CalendarMonthOutlinedIcon color="primary" fontSize="large" />
+                        <Box>
+                            <Typography variant="h6" fontWeight={600} color="text.primary">
+                                Thiết lập lịch xuất bản
+                            </Typography>
+                            <Typography variant="body2" color="text.secondary">
+                                Bật lịch để chọn thời điểm xuất bản tự động hoặc đăng ngay lập tức.
+                            </Typography>
+                        </Box>
+                    </Stack>
+
+                    <FormControlLabel
+                        control={
+                            <Switch
+                                checked={scheduleEnabled}
+                                onChange={(event) => setScheduleEnabled(event.target.checked)}
+                                color="primary"
+                            />
+                        }
+                        label="Đặt lịch xuất bản"
+                    />
+
+                    <AtomDateTimePicker
+                        label="Thời gian xuất bản"
+                        dateValue={scheduledFor}
+                        handleValue={setScheduledFor}
+                        minDateTime={new Date()}
+                        disabled={!scheduleEnabled}
+                        error={scheduleEnabled && !!errors.scheduledFor}
+                        helperText={scheduleEnabled ? errors.scheduledFor : undefined}
+                    />
+
+                    {scheduleEnabled && errors.scheduledFor && (
+                        <FormHelperText error>{errors.scheduledFor}</FormHelperText>
+                    )}
                 </Stack>
             </Paper>
 

@@ -8,8 +8,7 @@ import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
 import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { enUS, vi } from "date-fns/locale";
-import { useLocale } from "next-intl";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 
 const locales = { vi, en: enUS };
@@ -27,8 +26,14 @@ export default function AtomDateTimePicker(props: {
 }) {
   const { dateValue, handleValue, minDateTime, maxDateTime, label, error, helperText, disabled } = props;
 
-  const lang = useLocale();
-  const localeKey: LocaleKey = lang === "vi" || lang === "en" ? lang : "en";
+  const localeKey: LocaleKey = useMemo(() => {
+    if (typeof navigator !== "undefined") {
+      const lang = navigator.language?.toLowerCase();
+      if (lang?.startsWith("vi")) return "vi";
+      if (lang?.startsWith("en")) return "en";
+    }
+    return "en";
+  }, []);
 
   const [open, setOpen] = useState(false);
   const [value, setValue] = useState<any>(dateValue || null);

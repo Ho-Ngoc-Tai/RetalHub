@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
     Box,
     Button,
@@ -11,6 +11,7 @@ import {
     LinearProgress,
     Paper,
     Stack,
+    Switch,
     Tab,
     Table,
     TableBody,
@@ -20,6 +21,7 @@ import {
     TableRow,
     Tabs,
     TextField,
+    Tooltip,
     Typography,
 } from "@mui/material";
 import Alert from "@mui/material/Alert";
@@ -29,9 +31,12 @@ import SearchRoundedIcon from "@mui/icons-material/SearchRounded";
 import FileDownloadOutlinedIcon from "@mui/icons-material/FileDownloadOutlined";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
+import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
+import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { api } from "@/app/lib/api";
+import DialogConfirm from "@/app/components/atom/Dialog/DialogConfirm";
 
 interface PostItem {
     id: string;
@@ -41,13 +46,15 @@ interface PostItem {
     createdAt: string;
     views: number;
     status: "draft" | "published" | "archived" | "scheduled";
+    scheduledFor?: string | null;
+    publishedAt?: string | null;
 }
 
 const statusLabels: Record<PostItem["status"], string> = {
     draft: "Nháp",
-    published: "Published",
+    published: "Đã xuất bản",
     archived: "Lưu trữ",
-    scheduled: "Đã xuất bản",
+    scheduled: "Đã hẹn lịch",
 };
 
 const tabs: { value: string; label: string }[] = [
@@ -93,44 +100,56 @@ export default function PostsManagerPage() {
     const [posts, setPosts] = useState<PostItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [updatingId, setUpdatingId] = useState<string | null>(null);
+    const [statusDialog, setStatusDialog] = useState<{
+        open: boolean;
+        post: PostItem | null;
+        nextStatus: PostItem["status"] | null;
+        checked: boolean;
+    }>({ open: false, post: null, nextStatus: null, checked: false });
 
-    useEffect(() => {
-        let ignore = false;
+    const loadPosts = useCallback(
+        async ({ silent = false, ignore }: { silent?: boolean; ignore?: { current: boolean } } = {}) => {
+            if (!silent) {
+                setLoading(true);
+            }
 
-        const fetchPosts = async () => {
-            setLoading(true);
-            setError(null);
             try {
                 const response = await api.get<PostItem[]>("/posts");
-                if (!ignore) {
-                    setPosts(response.data);
-                }
+                if (ignore?.current) return;
+                setPosts(response.data);
+                setError(null);
             } catch (err: unknown) {
-                if (!ignore) {
-                    let message = "Không thể tải danh sách bài viết.";
-                    if (axios.isAxiosError(err)) {
-                        const dataMessage = err.response?.data as { message?: unknown } | undefined;
-                        const extracted = dataMessage?.message ?? err.message;
-                        if (typeof extracted === "string") message = extracted;
-                        else if (extracted) message = JSON.stringify(extracted);
-                    } else if (err instanceof Error) {
-                        message = err.message;
-                    }
-                    setError(message);
+                if (ignore?.current) return;
+                let message = "Không thể tải danh sách bài viết.";
+                if (axios.isAxiosError(err)) {
+                    const dataMessage = err.response?.data as { message?: unknown } | undefined;
+                    const extracted = dataMessage?.message ?? err.message;
+                    if (typeof extracted === "string") message = extracted;
+                    else if (extracted) message = JSON.stringify(extracted);
+                } else if (err instanceof Error) {
+                    message = err.message;
                 }
+                setError(message);
             } finally {
-                if (!ignore) {
+                if (ignore?.current) return;
+                if (!silent) {
                     setLoading(false);
                 }
             }
-        };
+        },
+        [],
+    );
 
-        fetchPosts();
-
+    useEffect(() => {
+        const ignore = { current: false };
+        loadPosts({ ignore }).catch(() => {
+            // Errors handled inside loadPosts; suppress unhandled rejection warnings.
+        });
         return () => {
-            ignore = true;
+            ignore.current = true;
         };
-    }, []);
+    }, [loadPosts]);
 
     const filteredPosts = useMemo(() => {
         return posts.filter((post) => {
@@ -144,6 +163,83 @@ export default function PostsManagerPage() {
             return matchTab && matchLanguage && matchStatus && matchSearch;
         });
     }, [tab, language, status, search, posts]);
+
+    const handleStatusToggle = async (post: PostItem, nextChecked: boolean) => {
+        if (post.status !== "draft" && post.status !== "published") {
+            return;
+        }
+
+        const nextStatus: PostItem["status"] = nextChecked ? "published" : "draft";
+
+        setUpdatingId(post.id);
+        setError(null);
+
+        try {
+            await api.patch(`/posts/${post.id}`, {
+                status: nextStatus,
+                ...(nextStatus === "published" ? { scheduledFor: null } : {}),
+            });
+
+            setPosts((prev) =>
+                prev.map((item) =>
+                    item.id === post.id
+                        ? {
+                            ...item,
+                            status: nextStatus,
+                        }
+                        : item,
+                ),
+            );
+            await loadPosts({ silent: true });
+        } catch (err: unknown) {
+            let message = "Không thể cập nhật trạng thái bài viết.";
+            if (axios.isAxiosError(err)) {
+                const dataMessage = err.response?.data as { message?: unknown } | undefined;
+                const extracted = dataMessage?.message ?? err.message;
+                if (typeof extracted === "string") {
+                    message = extracted;
+                }
+            } else if (err instanceof Error) {
+                message = err.message;
+            }
+
+            setError(message);
+        } finally {
+            setUpdatingId(null);
+        }
+    };
+
+    const handleRequestStatusToggle = (post: PostItem, nextChecked: boolean) => {
+        if (post.status !== "draft" && post.status !== "published") {
+            return;
+        }
+
+        const nextStatus: PostItem["status"] = nextChecked ? "published" : "draft";
+        setStatusDialog({ open: true, post, nextStatus, checked: nextChecked });
+    };
+
+    const handleCloseDialog = () => {
+        setStatusDialog((prev) => ({ ...prev, open: false }));
+    };
+
+    const handleConfirmStatusToggle = async () => {
+        if (!statusDialog.post) return;
+        handleCloseDialog();
+        await handleStatusToggle(statusDialog.post, statusDialog.checked);
+    };
+
+    const handleViewPost = (post: PostItem) => {
+        if (post.status === "published") {
+            window.open(`/news/${post.id}`, "_blank", "noopener,noreferrer");
+            return;
+        }
+
+        router.push(`/posts/${post.id}/edit`);
+    };
+
+    const handleEditPost = (post: PostItem) => {
+        router.push(`/posts/${post.id}/edit`);
+    };
 
     return (
         <Stack spacing={3}>
@@ -237,7 +333,7 @@ export default function PostsManagerPage() {
                                 }}
                             />
                             <TextField
-                                placeholder="Tìm kiếm bài viết"
+                                placeholder="Searching...."
                                 size="small"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
@@ -257,10 +353,10 @@ export default function PostsManagerPage() {
                                 setStatus("all");
                                 setSearch("");
                             }}>
-                                Đặt lại
+                                Reset
                             </Button>
                             <Button variant="contained" color="primary">
-                                Tìm kiếm
+                                Filter
                             </Button>
                         </Stack>
                     </Stack>
@@ -346,13 +442,57 @@ export default function PostsManagerPage() {
                                     <TableCell align="right">{(post.views ?? 0).toLocaleString()}</TableCell>
                                     <TableCell>{renderStatusChip(post.status)}</TableCell>
                                     <TableCell align="right">
-                                        <Stack direction="row" justifyContent="flex-end" spacing={1}>
-                                            <Button variant="outlined" size="small" sx={{ borderRadius: 999 }}>
-                                                Xem
-                                            </Button>
-                                            <Button variant="contained" size="small" sx={{ borderRadius: 999 }}>
-                                                Sửa
-                                            </Button>
+                                        <Stack direction="row" justifyContent="flex-end" spacing={1.5} alignItems="center">
+                                            <Tooltip
+                                                title={post.status === "published" ? "Xem bài viết" : "Chỉ xem được sau khi xuất bản"}
+                                                placement="top"
+                                                arrow
+                                            >
+                                                <span>
+                                                    <IconButton
+                                                        size="small"
+                                                        color="primary"
+                                                        onClick={() => handleViewPost(post)}
+                                                        disabled={post.status !== "published"}
+                                                    >
+                                                        <VisibilityOutlinedIcon fontSize="small" />
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
+
+                                            <Tooltip
+                                                title={
+                                                    post.status === "published"
+                                                        ? "Tắt để chuyển về nháp"
+                                                        : "Bật để xuất bản bài viết"
+                                                }
+                                                placement="top"
+                                                arrow
+                                            >
+                                                <span>
+                                                    <Switch
+                                                        size="small"
+                                                        color="success"
+                                                        checked={post.status === "published"}
+                                                        onChange={(_, checked) => handleRequestStatusToggle(post, checked)}
+                                                        disabled={
+                                                            updatingId === post.id ||
+                                                            (post.status !== "draft" && post.status !== "published")
+                                                        }
+                                                        inputProps={{ "aria-label": "toggle publish status" }}
+                                                    />
+                                                </span>
+                                            </Tooltip>
+
+                                            <Tooltip title="Chỉnh sửa bài viết" placement="top" arrow>
+                                                <IconButton
+                                                    size="small"
+                                                    color="primary"
+                                                    onClick={() => handleEditPost(post)}
+                                                >
+                                                    <EditOutlinedIcon fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
                                         </Stack>
                                     </TableCell>
                                 </TableRow>
@@ -375,6 +515,21 @@ export default function PostsManagerPage() {
                     </Table>
                 </TableContainer>
             </Paper>
+
+            <DialogConfirm
+                open={statusDialog.open}
+                title="Xác nhận thay đổi trạng thái"
+                description={
+                    statusDialog.nextStatus === "published"
+                        ? "Bạn có chắc chắn muốn xuất bản bài viết này?"
+                        : "Bạn có chắc chắn muốn chuyển bài viết này về trạng thái nháp?"
+                }
+                handleClose={handleCloseDialog}
+                handleApplie={handleConfirmStatusToggle}
+                isLoading={statusDialog.post ? updatingId === statusDialog.post.id : false}
+                lableClose="Hủy"
+                lableConfirm={statusDialog.nextStatus === "published" ? "Xuất bản" : "Chuyển về nháp"}
+            />
         </Stack>
     );
 }

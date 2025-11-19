@@ -22,6 +22,7 @@ import ArticleRoundedIcon from "@mui/icons-material/ArticleRounded";
 import EditNoteRoundedIcon from "@mui/icons-material/EditNoteRounded";
 import LibraryBooksRoundedIcon from "@mui/icons-material/LibraryBooksRounded";
 import SettingsRoundedIcon from "@mui/icons-material/SettingsRounded";
+import PublicRoundedIcon from "@mui/icons-material/PublicRounded";
 import ExpandMoreRoundedIcon from "@mui/icons-material/ExpandMoreRounded";
 import FiberManualRecordRoundedIcon from "@mui/icons-material/FiberManualRecordRounded";
 
@@ -78,6 +79,16 @@ const navSections: { title: string; items: NavItem[] }[] = [
                 label: "Cài đặt",
                 icon: <SettingsRoundedIcon fontSize="small" />,
                 href: "/settings",
+            },
+        ],
+    },
+    {
+        title: "Trang công khai",
+        items: [
+            {
+                label: "Trang tin tức",
+                icon: <PublicRoundedIcon fontSize="small" />,
+                href: "/news",
             },
         ],
     },
@@ -184,7 +195,7 @@ export default function Sidebar() {
 
                 {hasChildren && (
                     <Collapse in={openMap[item.label]} timeout="auto" unmountOnExit>
-                        <List disablePadding sx={{ pl: 2 }}>
+                        <List disablePadding sx={{ pl: 1 }}>
                             {item.children?.map((child) => {
                                 const childActive = isItemActive(child);
 
