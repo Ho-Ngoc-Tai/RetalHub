@@ -18,6 +18,7 @@ import TitleOutlinedIcon from "@mui/icons-material/Title";
 import NotesOutlinedIcon from "@mui/icons-material/Notes";
 import DescriptionOutlinedIcon from "@mui/icons-material/Description";
 import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined";
+import ImageOutlinedIcon from "@mui/icons-material/ImageOutlined";
 import type { TiptapEditorProps } from "@/app/components/atom/TiptapEditor";
 import AtomDateTimePicker from "@/app/components/atom/AtomDateTimePicker";
 
@@ -30,7 +31,14 @@ const TiptapEditor = dynamic<TiptapEditorProps>(
 );
 
 type FormCreatePostProps = {
-    __unused?: never;
+    initialValues?: {
+        title: string;
+        description: string;
+        content: string;
+        coverImage?: string | null;
+        scheduledFor?: string | null;
+    };
+    mode?: "create" | "edit";
 };
 
 export interface FormCreatePostHandle {
@@ -38,7 +46,8 @@ export interface FormCreatePostHandle {
         title: string;
         description: string;
         content: string;
-        scheduledFor?: string;
+        coverImage?: string | null;
+        scheduledFor?: string | null;
     } | null;
 }
 
@@ -46,16 +55,49 @@ type FormErrors = {
     title?: string;
     description?: string;
     content?: string;
+    coverImage?: string;
     scheduledFor?: string;
 };
 
-const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_, ref) => {
-    const [content, setContent] = useState("");
-    const [title, setTitle] = useState("");
-    const [description, setDescription] = useState("");
-    const [scheduleEnabled, setScheduleEnabled] = useState(false);
-    const [scheduledFor, setScheduledFor] = useState<Date | null>(null);
+const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>(({ initialValues, mode = "create" }, ref) => {
+    const [content, setContent] = useState(initialValues?.content ?? "");
+    const [title, setTitle] = useState(initialValues?.title ?? "");
+    const [description, setDescription] = useState(initialValues?.description ?? "");
+    const [coverImage, setCoverImage] = useState(initialValues?.coverImage ?? "");
+    const [scheduleEnabled, setScheduleEnabled] = useState(() => Boolean(initialValues?.scheduledFor));
+    const [scheduledFor, setScheduledFor] = useState<Date | null>(() => {
+        if (initialValues?.scheduledFor) {
+            const parsed = new Date(initialValues.scheduledFor);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+        return null;
+    });
     const [errors, setErrors] = useState<FormErrors>({});
+
+    useEffect(() => {
+        if (!initialValues) return;
+
+        setTitle(initialValues.title ?? "");
+        setDescription(initialValues.description ?? "");
+        setContent(initialValues.content ?? "");
+        setCoverImage(initialValues.coverImage ?? "");
+
+        if (initialValues.scheduledFor) {
+            const parsed = new Date(initialValues.scheduledFor);
+            if (!Number.isNaN(parsed.getTime())) {
+                setScheduleEnabled(true);
+                setScheduledFor(parsed);
+            } else {
+                setScheduleEnabled(false);
+                setScheduledFor(null);
+            }
+        } else {
+            setScheduleEnabled(false);
+            setScheduledFor(null);
+        }
+
+        setErrors({});
+    }, [initialValues]);
 
     useEffect(() => {
         if (!scheduleEnabled) {
@@ -76,6 +118,19 @@ const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_,
         if (!description.trim()) {
             newErrors.description = "Vui lòng nhập mô tả";
             isValid = false;
+        }
+
+        const trimmedCover = coverImage.trim();
+        if (trimmedCover) {
+            try {
+                const parsed = new URL(trimmedCover);
+                if (!parsed.protocol.startsWith("http")) {
+                    throw new Error("Invalid protocol");
+                }
+            } catch {
+                newErrors.coverImage = "Đường dẫn ảnh bìa không hợp lệ";
+                isValid = false;
+            }
         }
 
         const normalizedContent = content.replace(/<p><\/p>/g, "").trim();
@@ -101,19 +156,30 @@ const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_,
     useImperativeHandle(ref, () => ({
         submitForm: () => {
             if (validateForm()) {
+                const trimmedCover = coverImage.trim();
+
                 const payload: {
                     title: string;
                     description: string;
                     content: string;
-                    scheduledFor?: string;
+                    coverImage?: string | null;
+                    scheduledFor?: string | null;
                 } = {
                     title,
                     description,
                     content,
                 };
 
+                if (trimmedCover) {
+                    payload.coverImage = trimmedCover;
+                } else if (mode === "edit" && initialValues?.coverImage) {
+                    payload.coverImage = null;
+                }
+
                 if (scheduleEnabled && scheduledFor) {
                     payload.scheduledFor = scheduledFor.toISOString();
+                } else if (mode === "edit" && initialValues?.scheduledFor) {
+                    payload.scheduledFor = null;
                 }
 
                 return payload;
@@ -182,6 +248,54 @@ const FormCreatePost = forwardRef<FormCreatePostHandle, FormCreatePostProps>((_,
                             ),
                         }}
                     />
+
+                    <Stack spacing={1.5}>
+                        <TextField
+                            fullWidth
+                            label="Đường dẫn ảnh bìa"
+                            value={coverImage}
+                            onChange={(e) => setCoverImage(e.target.value)}
+                            error={!!errors.coverImage}
+                            helperText={errors.coverImage ?? "Sử dụng link ảnh để hiển thị nổi bật ở trang tin tức."}
+                            InputProps={{
+                                startAdornment: (
+                                    <InputAdornment position="start">
+                                        <ImageOutlinedIcon color="primary" fontSize="small" />
+                                    </InputAdornment>
+                                ),
+                            }}
+                        />
+
+                        {coverImage.trim() && !errors.coverImage && (
+                            <Box
+                                sx={{
+                                    position: "relative",
+                                    paddingTop: "45%",
+                                    borderRadius: 2,
+                                    overflow: "hidden",
+                                    border: "1px solid",
+                                    borderColor: "divider",
+                                    backgroundColor: "grey.50",
+                                }}
+                            >
+                                <Box
+                                    component="img"
+                                    src={coverImage}
+                                    alt="Preview ảnh bìa"
+                                    sx={{
+                                        position: "absolute",
+                                        inset: 0,
+                                        width: "100%",
+                                        height: "100%",
+                                        objectFit: "cover",
+                                    }}
+                                    onError={() => {
+                                        setErrors((prev) => ({ ...prev, coverImage: "Không thể tải ảnh. Vui lòng kiểm tra lại URL." }));
+                                    }}
+                                />
+                            </Box>
+                        )}
+                    </Stack>
                 </Stack>
             </Paper>
 

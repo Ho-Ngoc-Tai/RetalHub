@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Login Page",
-  description: "A Login Page.",
+  title: "RentalHub Admin",
+  description: "RentalHub Admin Page.",
 };
 
 export default function RootLayout({

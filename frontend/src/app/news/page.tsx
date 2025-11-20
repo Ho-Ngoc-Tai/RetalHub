@@ -25,6 +25,7 @@ import NewspaperRoundedIcon from "@mui/icons-material/NewspaperRounded";
 import ShowChartRoundedIcon from "@mui/icons-material/ShowChartRounded";
 import CandlestickChartRoundedIcon from "@mui/icons-material/CandlestickChartRounded";
 import BoltRoundedIcon from "@mui/icons-material/BoltRounded";
+import SmartDisplayRoundedIcon from "@mui/icons-material/SmartDisplayRounded";
 import { format } from "date-fns";
 import { vi } from "date-fns/locale";
 import { api } from "@/app/lib/api";
@@ -34,6 +35,7 @@ interface PostItem {
     title: string;
     description: string;
     content: string;
+    coverImage?: string | null;
     category: string;
     views: number;
     status: string;
@@ -62,6 +64,46 @@ const getExcerpt = (content: string, limit = 220) => {
     const clean = stripHtml(content).replace(/\s+/g, " ").trim();
     if (clean.length <= limit) return clean;
     return `${clean.slice(0, limit - 1)}…`;
+};
+
+const extractFirstImage = (html: string) => {
+    if (!html) return null;
+    const match = html.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+    return match?.[1] ?? null;
+};
+
+const extractFirstYoutubeSrc = (html: string) => {
+    if (!html) return null;
+    const match = html.match(/<iframe[^>]+src=["']([^"']+youtube[^"']+)["'][^>]*>/i);
+    return match?.[1] ?? null;
+};
+
+const getYoutubeThumbnail = (src: string) => {
+    if (!src) return null;
+    const idMatch = src.match(/(?:embed\/|watch\?v=|youtu\.be\/)([\w-]{11})/);
+    const videoId = idMatch?.[1];
+    if (!videoId) return null;
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+};
+
+const getPostMedia = (post: PostItem) => {
+    const preferredImage = post.coverImage?.trim() || extractFirstImage(post.content);
+    if (preferredImage) {
+        return { type: "image" as const, src: preferredImage };
+    }
+
+    const youtubeSrc = extractFirstYoutubeSrc(post.content);
+    if (youtubeSrc) {
+        const thumbnail = getYoutubeThumbnail(youtubeSrc);
+        if (thumbnail) {
+            return {
+                type: "video" as const,
+                src: thumbnail,
+            };
+        }
+    }
+
+    return null;
 };
 
 const formatDate = (iso: string, pattern = "dd MMMM yyyy") =>
@@ -324,79 +366,110 @@ export default function NewsPage() {
                 ) : (
                     <Stack spacing={6}>
                         {headline ? (
-                            <Card
-                                elevation={0}
-                                sx={{
-                                    borderRadius: 4,
-                                    overflow: "hidden",
-                                    background: "linear-gradient(120deg, #ffffff 0%, #f3f6fd 100%)",
-                                    boxShadow: "0 30px 80px rgba(19, 33, 69, 0.1)",
-                                }}
-                            >
-                                <CardActionArea component={Link} href={`/news/${headline.id}`} sx={{ display: "block" }}>
-                                    <CardContent sx={{ p: 0 }}>
-                                        <Box
-                                            sx={{
-                                                position: "relative",
-                                                minHeight: { xs: 320, md: 420 },
-                                                display: "grid",
-                                                alignItems: "end",
-                                                background: getCategoryGradient(headline.category),
-                                            }}
-                                        >
-                                            <Box
-                                                sx={{
-                                                    position: "absolute",
-                                                    inset: 0,
-                                                    background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%)",
-                                                }}
-                                            />
-                                            <Stack spacing={3} sx={{ p: { xs: 4, md: 6 }, position: "relative", color: "#fff" }}>
-                                                <Chip
-                                                    label={headline.category}
-                                                    color="default"
+                            (() => {
+                                const media = getPostMedia(headline);
+                                return (
+                                    <Card
+                                        elevation={0}
+                                        sx={{
+                                            borderRadius: 4,
+                                            overflow: "hidden",
+                                            background: "linear-gradient(120deg, #ffffff 0%, #f3f6fd 100%)",
+                                            boxShadow: "0 30px 80px rgba(19, 33, 69, 0.1)",
+                                        }}
+                                    >
+                                        <CardActionArea component={Link} href={`/news/${headline.id}`} sx={{ display: "block" }}>
+                                            <CardContent sx={{ p: 0 }}>
+                                                <Box
                                                     sx={{
-                                                        alignSelf: "flex-start",
-                                                        fontWeight: 600,
-                                                        textTransform: "uppercase",
-                                                        letterSpacing: 1,
-                                                        backgroundColor: "rgba(255,255,255,0.18)",
-                                                        color: "inherit",
-                                                        border: "1px solid rgba(255,255,255,0.24)",
+                                                        position: "relative",
+                                                        minHeight: { xs: 320, md: 420 },
+                                                        display: "grid",
+                                                        alignItems: "end",
+                                                        background: media ? undefined : getCategoryGradient(headline.category),
                                                     }}
-                                                />
-                                                <Typography variant="overline" sx={{ letterSpacing: 2, opacity: 0.8 }}>
-                                                    Bài viết nổi bật
-                                                </Typography>
-                                                <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1.15 }}>
-                                                    {headline.title}
-                                                </Typography>
-                                                <Typography variant="body1" sx={{ maxWidth: { md: 680 }, opacity: 0.92 }}>
-                                                    {headline.description || getExcerpt(headline.content, 320)}
-                                                </Typography>
-                                                <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }}>
-                                                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                                        {formatDate(headline.createdAt)}
-                                                    </Typography>
+                                                >
+                                                    {media && (
+                                                        <Box
+                                                            component="img"
+                                                            src={media.src}
+                                                            alt={headline.title}
+                                                            sx={{
+                                                                position: "absolute",
+                                                                inset: 0,
+                                                                width: "100%",
+                                                                height: "100%",
+                                                                objectFit: "cover",
+                                                                filter: media.type === "video" ? "brightness(0.75)" : undefined,
+                                                            }}
+                                                        />
+                                                    )}
+                                                    {media?.type === "video" && (
+                                                        <SmartDisplayRoundedIcon
+                                                            sx={{
+                                                                position: "absolute",
+                                                                top: 24,
+                                                                right: 24,
+                                                                fontSize: 48,
+                                                                color: "rgba(255,255,255,0.85)",
+                                                            }}
+                                                        />
+                                                    )}
                                                     <Box
-                                                        component="span"
                                                         sx={{
-                                                            display: { xs: "none", sm: "block" },
-                                                            width: 4,
-                                                            height: 4,
-                                                            borderRadius: "50%",
-                                                            backgroundColor: "rgba(255,255,255,0.48)",
+                                                            position: "absolute",
+                                                            inset: 0,
+                                                            background: "linear-gradient(180deg, rgba(0,0,0,0.1) 0%, rgba(0,0,0,0.65) 100%)",
                                                         }}
                                                     />
-                                                    <Typography variant="body2" sx={{ opacity: 0.9 }}>
-                                                        {headline.views?.toLocaleString()} lượt xem
-                                                    </Typography>
-                                                </Stack>
-                                            </Stack>
-                                        </Box>
-                                    </CardContent>
-                                </CardActionArea>
-                            </Card>
+                                                    <Stack spacing={3} sx={{ p: { xs: 4, md: 6 }, position: "relative", color: "#fff" }}>
+                                                        <Chip
+                                                            label={headline.category}
+                                                            color="default"
+                                                            sx={{
+                                                                alignSelf: "flex-start",
+                                                                fontWeight: 600,
+                                                                textTransform: "uppercase",
+                                                                letterSpacing: 1,
+                                                                backgroundColor: "rgba(255,255,255,0.18)",
+                                                                color: "inherit",
+                                                                border: "1px solid rgba(255,255,255,0.24)",
+                                                            }}
+                                                        />
+                                                        <Typography variant="overline" sx={{ letterSpacing: 2, opacity: 0.8 }}>
+                                                            Bài viết nổi bật
+                                                        </Typography>
+                                                        <Typography variant="h3" fontWeight={800} sx={{ lineHeight: 1.15 }}>
+                                                            {headline.title}
+                                                        </Typography>
+                                                        <Typography variant="body1" sx={{ maxWidth: { md: 680 }, opacity: 0.92 }}>
+                                                            {headline.description || getExcerpt(headline.content, 320)}
+                                                        </Typography>
+                                                        <Stack direction={{ xs: "column", sm: "row" }} spacing={2} alignItems={{ xs: "flex-start", sm: "center" }}>
+                                                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                                                {formatDate(headline.createdAt)}
+                                                            </Typography>
+                                                            <Box
+                                                                component="span"
+                                                                sx={{
+                                                                    display: { xs: "none", sm: "block" },
+                                                                    width: 4,
+                                                                    height: 4,
+                                                                    borderRadius: "50%",
+                                                                    backgroundColor: "rgba(255,255,255,0.48)",
+                                                                }}
+                                                            />
+                                                            <Typography variant="body2" sx={{ opacity: 0.9 }}>
+                                                                {headline.views?.toLocaleString()} lượt xem
+                                                            </Typography>
+                                                        </Stack>
+                                                    </Stack>
+                                                </Box>
+                                            </CardContent>
+                                        </CardActionArea>
+                                    </Card>
+                                );
+                            })()
                         ) : (
                             <Alert severity="info" sx={{ borderRadius: 3 }}>
                                 Hiện chưa có bài viết nào được xuất bản. Hãy quay lại sau khi quản trị viên đăng tải nội dung mới nhé!
@@ -423,56 +496,86 @@ export default function NewsPage() {
                                     </Typography>
                                 </Stack>
                                 <Grid container spacing={3}>
-                                    {trending.map((post) => (
-                                        <Grid size={{ xs: 12, sm: 6, md: 4 }} key={post.id}>
-                                            <Card
-                                                elevation={0}
-                                                sx={{
-                                                    borderRadius: 3,
-                                                    height: "100%",
-                                                    display: "flex",
-                                                    flexDirection: "column",
-                                                    overflow: "hidden",
-                                                    boxShadow: "0 18px 40px rgba(15, 40, 76, 0.08)",
-                                                }}
-                                            >
-                                                <CardActionArea component={Link} href={`/news/${post.id}`} sx={{ height: "100%" }}>
-                                                    <CardMedia>
-                                                        <Box
-                                                            sx={{
-                                                                height: 180,
-                                                                background: getCategoryGradient(post.category),
-                                                            }}
-                                                        />
-                                                    </CardMedia>
-                                                    <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
-                                                        <Stack direction="row" spacing={1} alignItems="center">
-                                                            <Chip
-                                                                label={post.category}
-                                                                size="small"
-                                                                sx={{ textTransform: "uppercase", fontWeight: 600 }}
-                                                            />
-                                                            <Chip
-                                                                label={post.language.toUpperCase()}
-                                                                size="small"
-                                                                variant="outlined"
-                                                                sx={{ fontWeight: 600 }}
-                                                            />
-                                                        </Stack>
-                                                        <Typography variant="h6" fontWeight={700}>
-                                                            {post.title}
-                                                        </Typography>
-                                                        <Typography variant="body2" color="text.secondary">
-                                                            {post.description || getExcerpt(post.content, 160)}
-                                                        </Typography>
-                                                        <Typography variant="caption" color="text.secondary">
-                                                            {formatDate(post.createdAt, "dd MMM yyyy")} · {post.views?.toLocaleString()} lượt xem
-                                                        </Typography>
-                                                    </CardContent>
-                                                </CardActionArea>
-                                            </Card>
-                                        </Grid>
-                                    ))}
+                                    {trending.map((post) => {
+                                        const media = getPostMedia(post);
+                                        return (
+                                            <Grid size={{ xs: 12, sm: 6, md: 4 }} key={post.id}>
+                                                <Card
+                                                    elevation={0}
+                                                    sx={{
+                                                        borderRadius: 3,
+                                                        height: "100%",
+                                                        display: "flex",
+                                                        flexDirection: "column",
+                                                        overflow: "hidden",
+                                                        boxShadow: "0 18px 40px rgba(15, 40, 76, 0.08)",
+                                                    }}
+                                                >
+                                                    <CardActionArea component={Link} href={`/news/${post.id}`} sx={{ height: "100%" }}>
+                                                        <CardMedia sx={{ position: "relative", height: 180 }}>
+                                                            {media ? (
+                                                                <Box
+                                                                    component="img"
+                                                                    src={media.src}
+                                                                    alt={post.title}
+                                                                    sx={{
+                                                                        position: "absolute",
+                                                                        inset: 0,
+                                                                        width: "100%",
+                                                                        height: "100%",
+                                                                        objectFit: "cover",
+                                                                        filter: media.type === "video" ? "brightness(0.8)" : undefined,
+                                                                    }}
+                                                                />
+                                                            ) : (
+                                                                <Box
+                                                                    sx={{
+                                                                        position: "absolute",
+                                                                        inset: 0,
+                                                                        background: getCategoryGradient(post.category),
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {media?.type === "video" && (
+                                                                <SmartDisplayRoundedIcon
+                                                                    sx={{
+                                                                        position: "absolute",
+                                                                        top: 12,
+                                                                        right: 12,
+                                                                        color: "rgba(255,255,255,0.9)",
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </CardMedia>
+                                                        <CardContent sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+                                                            <Stack direction="row" spacing={1} alignItems="center">
+                                                                <Chip
+                                                                    label={post.category}
+                                                                    size="small"
+                                                                    sx={{ textTransform: "uppercase", fontWeight: 600 }}
+                                                                />
+                                                                <Chip
+                                                                    label={post.language.toUpperCase()}
+                                                                    size="small"
+                                                                    variant="outlined"
+                                                                    sx={{ fontWeight: 600 }}
+                                                                />
+                                                            </Stack>
+                                                            <Typography variant="h6" fontWeight={700}>
+                                                                {post.title}
+                                                            </Typography>
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                {post.description || getExcerpt(post.content, 160)}
+                                                            </Typography>
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                {formatDate(post.createdAt, "dd MMM yyyy")} · {post.views?.toLocaleString()} lượt xem
+                                                            </Typography>
+                                                        </CardContent>
+                                                    </CardActionArea>
+                                                </Card>
+                                            </Grid>
+                                        );
+                                    })}
                                 </Grid>
                             </Stack>
                         )}
@@ -483,59 +586,90 @@ export default function NewsPage() {
                                     Bảng tin mới nhất
                                 </Typography>
                                 <Stack spacing={3}>
-                                    {feed.map((post, index) => (
-                                        <Card
-                                            key={post.id}
-                                            elevation={0}
-                                            sx={{
-                                                borderRadius: 3,
-                                                overflow: "hidden",
-                                                boxShadow: "0 20px 60px rgba(19, 33, 69, 0.08)",
-                                            }}
-                                        >
-                                            <CardActionArea component={Link} href={`/news/${post.id}`} sx={{ display: "block" }}>
-                                                <Stack direction={{ xs: "column", md: index % 2 === 0 ? "row" : "row-reverse" }}>
-                                                    <Box
-                                                        sx={{
-                                                            flexBasis: { md: "45%" },
-                                                            minHeight: { xs: 180, md: 260 },
-                                                            background: getCategoryGradient(post.category),
-                                                        }}
-                                                    />
-                                                    <CardContent
-                                                        sx={{
-                                                            flex: 1,
-                                                            display: "flex",
-                                                            flexDirection: "column",
-                                                            gap: 2,
-                                                            p: { xs: 3, md: 4 },
-                                                        }}
-                                                    >
-                                                        <Stack direction="row" spacing={1.5} alignItems="center">
-                                                            <Chip
-                                                                label={post.category}
-                                                                size="small"
-                                                                sx={{ textTransform: "uppercase", fontWeight: 600 }}
-                                                            />
-                                                            <Divider orientation="vertical" flexItem sx={{ borderStyle: "dashed" }} />
-                                                            <Typography variant="caption" color="text.secondary">
-                                                                {formatDate(post.createdAt, "dd MMM yyyy")} · {post.views?.toLocaleString()} lượt xem
+                                    {feed.map((post, index) => {
+                                        const media = getPostMedia(post);
+                                        return (
+                                            <Card
+                                                key={post.id}
+                                                elevation={0}
+                                                sx={{
+                                                    borderRadius: 3,
+                                                    overflow: "hidden",
+                                                    boxShadow: "0 20px 60px rgba(19, 33, 69, 0.08)",
+                                                }}
+                                            >
+                                                <CardActionArea component={Link} href={`/news/${post.id}`} sx={{ display: "block" }}>
+                                                    <Stack direction={{ xs: "column", md: index % 2 === 0 ? "row" : "row-reverse" }}>
+                                                        <Box
+                                                            sx={{
+                                                                flexBasis: { md: "45%" },
+                                                                minHeight: { xs: 180, md: 260 },
+                                                                position: "relative",
+                                                                background: media ? undefined : getCategoryGradient(post.category),
+                                                            }}
+                                                        >
+                                                            {media && (
+                                                                <Box
+                                                                    component="img"
+                                                                    src={media.src}
+                                                                    alt={post.title}
+                                                                    sx={{
+                                                                        position: "absolute",
+                                                                        inset: 0,
+                                                                        width: "100%",
+                                                                        height: "100%",
+                                                                        objectFit: "cover",
+                                                                        filter: media.type === "video" ? "brightness(0.75)" : undefined,
+                                                                    }}
+                                                                />
+                                                            )}
+                                                            {media?.type === "video" && (
+                                                                <SmartDisplayRoundedIcon
+                                                                    sx={{
+                                                                        position: "absolute",
+                                                                        top: 16,
+                                                                        right: 16,
+                                                                        color: "rgba(255,255,255,0.88)",
+                                                                        fontSize: 32,
+                                                                    }}
+                                                                />
+                                                            )}
+                                                        </Box>
+                                                        <CardContent
+                                                            sx={{
+                                                                flex: 1,
+                                                                display: "flex",
+                                                                flexDirection: "column",
+                                                                gap: 2,
+                                                                p: { xs: 3, md: 4 },
+                                                            }}
+                                                        >
+                                                            <Stack direction="row" spacing={1.5} alignItems="center">
+                                                                <Chip
+                                                                    label={post.category}
+                                                                    size="small"
+                                                                    sx={{ textTransform: "uppercase", fontWeight: 600 }}
+                                                                />
+                                                                <Divider orientation="vertical" flexItem sx={{ borderStyle: "dashed" }} />
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {formatDate(post.createdAt, "dd MMM yyyy")} · {post.views?.toLocaleString()} lượt xem
+                                                                </Typography>
+                                                            </Stack>
+                                                            <Typography variant="h5" fontWeight={700}>
+                                                                {post.title}
                                                             </Typography>
-                                                        </Stack>
-                                                        <Typography variant="h5" fontWeight={700}>
-                                                            {post.title}
-                                                        </Typography>
-                                                        <Typography variant="body1" color="text.secondary">
-                                                            {post.description || getExcerpt(post.content)}
-                                                        </Typography>
-                                                        <Typography variant="body2" sx={{ color: "primary.main", fontWeight: 600 }}>
-                                                            Đọc tiếp →
-                                                        </Typography>
-                                                    </CardContent>
-                                                </Stack>
-                                            </CardActionArea>
-                                        </Card>
-                                    ))}
+                                                            <Typography variant="body1" color="text.secondary">
+                                                                {post.description || getExcerpt(post.content)}
+                                                            </Typography>
+                                                            <Typography variant="body2" sx={{ color: "primary.main", fontWeight: 600 }}>
+                                                                Đọc tiếp →
+                                                            </Typography>
+                                                        </CardContent>
+                                                    </Stack>
+                                                </CardActionArea>
+                                            </Card>
+                                        );
+                                    })}
                                 </Stack>
                             </Stack>
                         )}

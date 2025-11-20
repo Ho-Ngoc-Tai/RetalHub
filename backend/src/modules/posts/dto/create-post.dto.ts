@@ -32,8 +32,12 @@ export class CreatePostDto {
   readonly language?: string;
 
   @IsOptional()
-  @IsIn(['published', 'archived', 'scheduled'])
-  readonly status?: 'published' | 'archived' | 'scheduled';
+  @IsString()
+  readonly coverImage?: string;
+
+  @IsOptional()
+  @IsIn(['draft', 'published', 'archived', 'scheduled'])
+  readonly status?: 'draft' | 'published' | 'archived' | 'scheduled';
 
   @IsOptional()
   @IsDateString()

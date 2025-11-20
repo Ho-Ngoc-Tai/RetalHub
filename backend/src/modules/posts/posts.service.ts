@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from 'prisma/prisma.service';
 import { CreatePostDto } from './dto/create-post.dto';
 import { UpdatePostDto } from './dto/update-post.dto';
@@ -8,6 +12,7 @@ export interface PostEntity {
   title: string;
   description: string;
   content: string;
+  coverImage?: string | null;
   category: string;
   views: number;
   status: string;
@@ -58,16 +63,64 @@ export class PostsService {
         ? new Date()
         : (scheduledDate ?? new Date());
 
+    const {
+      title,
+      description,
+      content,
+      coverImage,
+      publishedAt: incomingPublishedAt,
+      ...restFields
+    } = rest as Record<string, unknown>;
+
+    const normalizedTitle = typeof title === 'string' ? title.trim() : '';
+    const normalizedDescription =
+      typeof description === 'string' ? description.trim() : '';
+    const normalizedContent = typeof content === 'string' ? content : '';
+
+    if (!normalizedTitle) {
+      throw new BadRequestException('Tiêu đề bài viết không hợp lệ.');
+    }
+
+    if (!normalizedDescription) {
+      throw new BadRequestException('Mô tả bài viết không hợp lệ.');
+    }
+
+    if (!normalizedContent) {
+      throw new BadRequestException('Nội dung bài viết không hợp lệ.');
+    }
+
+    const normalizedCoverImage =
+      typeof coverImage === 'string' && coverImage.trim()
+        ? coverImage.trim()
+        : undefined;
+
+    const createPayload: Record<string, unknown> = {
+      title: normalizedTitle,
+      description: normalizedDescription,
+      content: normalizedContent,
+      language,
+      status: computedStatus,
+      category,
+      publishedAt,
+      scheduledFor: scheduledDate,
+      ...(authorId ? { authorId } : {}),
+      ...(normalizedCoverImage ? { coverImage: normalizedCoverImage } : {}),
+    };
+
+    if (incomingPublishedAt && typeof incomingPublishedAt === 'string') {
+      const parsedPublished = new Date(incomingPublishedAt);
+      if (!Number.isNaN(parsedPublished.getTime())) {
+        createPayload.publishedAt = parsedPublished;
+      }
+    }
+
+    Object.entries(restFields).forEach(([key, value]) => {
+      if (value === undefined) return;
+      createPayload[key] = value;
+    });
+
     return await prisma.post.create({
-      data: {
-        ...rest,
-        language,
-        status: computedStatus,
-        category,
-        publishedAt,
-        scheduledFor: scheduledDate,
-        ...(authorId ? { authorId } : {}),
-      },
+      data: createPayload,
     });
   }
 
@@ -111,7 +164,18 @@ export class PostsService {
       incomingPublishedAt = value ?? null;
     }
 
-    const updateData: Record<string, unknown> = { ...rest };
+    const restRecord = rest as Record<string, unknown>;
+    const updateData: Record<string, unknown> = { ...restRecord };
+
+    if ('coverImage' in restRecord) {
+      const incomingCoverImage = restRecord.coverImage;
+      if (typeof incomingCoverImage === 'string') {
+        const trimmed = incomingCoverImage.trim();
+        updateData.coverImage = trimmed || null;
+      } else if (incomingCoverImage === null) {
+        updateData.coverImage = null;
+      }
+    }
 
     let scheduledDate: Date | null | undefined;
     if (hasScheduledFor) {

@@ -33,6 +33,7 @@ import CalendarMonthOutlinedIcon from "@mui/icons-material/CalendarMonthOutlined
 import LanguageOutlinedIcon from "@mui/icons-material/LanguageOutlined";
 import VisibilityOutlinedIcon from "@mui/icons-material/VisibilityOutlined";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import SmartDisplayRoundedIcon from "@mui/icons-material/SmartDisplayRounded";
 import { useRouter } from "next/navigation";
 import axios from "axios";
 import { api } from "@/app/lib/api";
@@ -41,6 +42,9 @@ import DialogConfirm from "@/app/components/atom/Dialog/DialogConfirm";
 interface PostItem {
     id: string;
     title: string;
+    description: string;
+    content: string;
+    coverImage?: string | null;
     category: string;
     language: string;
     createdAt: string;
@@ -49,6 +53,46 @@ interface PostItem {
     scheduledFor?: string | null;
     publishedAt?: string | null;
 }
+
+const extractFirstImage = (html: string) => {
+    if (!html) return null;
+    const match = html.match(/<img[^>]+src=["']([^"']+)["'][^>]*>/i);
+    return match?.[1] ?? null;
+};
+
+const extractFirstYoutubeSrc = (html: string) => {
+    if (!html) return null;
+    const match = html.match(/<iframe[^>]+src=["']([^"']+youtube[^"']+)["'][^>]*>/i);
+    return match?.[1] ?? null;
+};
+
+const getYoutubeThumbnail = (src: string) => {
+    if (!src) return null;
+    const idMatch = src.match(/(?:embed\/|watch\?v=|youtu\.be\/)([\w-]{11})/);
+    const videoId = idMatch?.[1];
+    if (!videoId) return null;
+    return `https://img.youtube.com/vi/${videoId}/hqdefault.jpg`;
+};
+
+const getPostMedia = (post: PostItem) => {
+    const preferredImage = post.coverImage?.trim() || extractFirstImage(post.content);
+    if (preferredImage) {
+        return { type: "image" as const, src: preferredImage };
+    }
+
+    const youtubeSrc = extractFirstYoutubeSrc(post.content);
+    if (youtubeSrc) {
+        const thumbnail = getYoutubeThumbnail(youtubeSrc);
+        if (thumbnail) {
+            return {
+                type: "video" as const,
+                src: thumbnail,
+            };
+        }
+    }
+
+    return null;
+};
 
 const statusLabels: Record<PostItem["status"], string> = {
     draft: "Nháp",
@@ -419,6 +463,7 @@ export default function PostsManagerPage() {
                         <TableHead>
                             <TableRow sx={{ "& th": { fontWeight: 700, color: "text.secondary", fontSize: 13, textTransform: "uppercase" } }}>
                                 <TableCell width={64}>No.</TableCell>
+                                <TableCell width={92}>Ảnh</TableCell>
                                 <TableCell>Tiêu đề</TableCell>
                                 <TableCell width={180}>Chuyên mục</TableCell>
                                 <TableCell width={180}>Ngày tạo</TableCell>
@@ -428,75 +473,152 @@ export default function PostsManagerPage() {
                             </TableRow>
                         </TableHead>
                         <TableBody>
-                            {filteredPosts.map((post, index) => (
-                                <TableRow key={post.id} hover sx={{ "& td": { borderBottomStyle: "dashed" } }}>
-                                    <TableCell>{index + 1}</TableCell>
-                                    <TableCell>
-                                        <Typography fontWeight={600}>{post.title}</Typography>
-                                        <Typography variant="body2" color="text.secondary">
-                                            {post.category}
-                                        </Typography>
-                                    </TableCell>
-                                    <TableCell>{post.category}</TableCell>
-                                    <TableCell>{formatDate(post.createdAt)}</TableCell>
-                                    <TableCell align="right">{(post.views ?? 0).toLocaleString()}</TableCell>
-                                    <TableCell>{renderStatusChip(post.status)}</TableCell>
-                                    <TableCell align="right">
-                                        <Stack direction="row" justifyContent="flex-end" spacing={1.5} alignItems="center">
-                                            <Tooltip
-                                                title={post.status === "published" ? "Xem bài viết" : "Chỉ xem được sau khi xuất bản"}
-                                                placement="top"
-                                                arrow
+                            {filteredPosts.map((post, index) => {
+                                const media = getPostMedia(post);
+
+                                return (
+                                    <TableRow key={post.id} hover sx={{ "& td": { borderBottomStyle: "dashed" } }}>
+                                        <TableCell>{index + 1}</TableCell>
+                                        <TableCell>
+                                            <Box
+                                                sx={{
+                                                    width: 72,
+                                                    height: 72,
+                                                    borderRadius: 2,
+                                                    border: "1px solid",
+                                                    borderColor: "divider",
+                                                    overflow: "hidden",
+                                                    position: "relative",
+                                                    backgroundColor: media ? "transparent" : "grey.100",
+                                                }}
                                             >
-                                                <span>
+                                                {media?.type === "image" && (
+                                                    <Box
+                                                        component="img"
+                                                        src={media.src}
+                                                        alt={post.title}
+                                                        sx={{
+                                                            width: "100%",
+                                                            height: "100%",
+                                                            objectFit: "cover",
+                                                        }}
+                                                    />
+                                                )}
+
+                                                {media?.type === "video" && (
+                                                    <>
+                                                        <Box
+                                                            component="img"
+                                                            src={media.src}
+                                                            alt={post.title}
+                                                            sx={{
+                                                                width: "100%",
+                                                                height: "100%",
+                                                                objectFit: "cover",
+                                                                filter: "brightness(0.75)",
+                                                            }}
+                                                        />
+                                                        <SmartDisplayRoundedIcon
+                                                            sx={{
+                                                                position: "absolute",
+                                                                top: "50%",
+                                                                left: "50%",
+                                                                transform: "translate(-50%, -50%)",
+                                                                color: "common.white",
+                                                                fontSize: 22,
+                                                            }}
+                                                        />
+                                                    </>
+                                                )}
+
+                                                {!media && (
+                                                    <Stack
+                                                        sx={{
+                                                            width: "100%",
+                                                            height: "100%",
+                                                            alignItems: "center",
+                                                            justifyContent: "center",
+                                                            background: "linear-gradient(135deg, rgba(59,130,246,0.1) 0%, rgba(236,72,153,0.2) 100%)",
+                                                        }}
+                                                    >
+                                                        <Typography variant="subtitle2" fontWeight={700} color="text.secondary">
+                                                            {post.category.slice(0, 2).toUpperCase()}
+                                                        </Typography>
+                                                    </Stack>
+                                                )}
+                                            </Box>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Stack spacing={0.5}>
+                                                <Typography fontWeight={600} lineHeight={1.3}>
+                                                    {post.title}
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {post.category}
+                                                </Typography>
+                                            </Stack>
+                                        </TableCell>
+                                        <TableCell>{post.category}</TableCell>
+                                        <TableCell>{formatDate(post.createdAt)}</TableCell>
+                                        <TableCell align="right">{(post.views ?? 0).toLocaleString()}</TableCell>
+                                        <TableCell>{renderStatusChip(post.status)}</TableCell>
+                                        <TableCell align="right">
+                                            <Stack direction="row" justifyContent="flex-end" spacing={1.5} alignItems="center">
+                                                <Tooltip
+                                                    title={post.status === "published" ? "Xem bài viết" : "Chỉ xem được sau khi xuất bản"}
+                                                    placement="top"
+                                                    arrow
+                                                >
+                                                    <span>
+                                                        <IconButton
+                                                            size="small"
+                                                            color="primary"
+                                                            onClick={() => handleViewPost(post)}
+                                                            disabled={post.status !== "published"}
+                                                        >
+                                                            <VisibilityOutlinedIcon fontSize="small" />
+                                                        </IconButton>
+                                                    </span>
+                                                </Tooltip>
+
+                                                <Tooltip
+                                                    title={
+                                                        post.status === "published"
+                                                            ? "Tắt để chuyển về nháp"
+                                                            : "Bật để xuất bản bài viết"
+                                                    }
+                                                    placement="top"
+                                                    arrow
+                                                >
+                                                    <span>
+                                                        <Switch
+                                                            size="small"
+                                                            color="success"
+                                                            checked={post.status === "published"}
+                                                            onChange={(_, checked) => handleRequestStatusToggle(post, checked)}
+                                                            disabled={
+                                                                updatingId === post.id ||
+                                                                (post.status !== "draft" && post.status !== "published")
+                                                            }
+                                                            inputProps={{ "aria-label": "toggle publish status" }}
+                                                        />
+                                                    </span>
+                                                </Tooltip>
+
+                                                <Tooltip title="Chỉnh sửa bài viết" placement="top" arrow>
                                                     <IconButton
                                                         size="small"
                                                         color="primary"
-                                                        onClick={() => handleViewPost(post)}
-                                                        disabled={post.status !== "published"}
+                                                        onClick={() => handleEditPost(post)}
                                                     >
-                                                        <VisibilityOutlinedIcon fontSize="small" />
+                                                        <EditOutlinedIcon fontSize="small" />
                                                     </IconButton>
-                                                </span>
-                                            </Tooltip>
-
-                                            <Tooltip
-                                                title={
-                                                    post.status === "published"
-                                                        ? "Tắt để chuyển về nháp"
-                                                        : "Bật để xuất bản bài viết"
-                                                }
-                                                placement="top"
-                                                arrow
-                                            >
-                                                <span>
-                                                    <Switch
-                                                        size="small"
-                                                        color="success"
-                                                        checked={post.status === "published"}
-                                                        onChange={(_, checked) => handleRequestStatusToggle(post, checked)}
-                                                        disabled={
-                                                            updatingId === post.id ||
-                                                            (post.status !== "draft" && post.status !== "published")
-                                                        }
-                                                        inputProps={{ "aria-label": "toggle publish status" }}
-                                                    />
-                                                </span>
-                                            </Tooltip>
-
-                                            <Tooltip title="Chỉnh sửa bài viết" placement="top" arrow>
-                                                <IconButton
-                                                    size="small"
-                                                    color="primary"
-                                                    onClick={() => handleEditPost(post)}
-                                                >
-                                                    <EditOutlinedIcon fontSize="small" />
-                                                </IconButton>
-                                            </Tooltip>
-                                        </Stack>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
+                                                </Tooltip>
+                                            </Stack>
+                                        </TableCell>
+                                    </TableRow>
+                                );
+                            })}
                             {!loading && filteredPosts.length === 0 && (
                                 <TableRow>
                                     <TableCell colSpan={7}>

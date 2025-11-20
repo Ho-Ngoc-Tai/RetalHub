@@ -23,11 +23,12 @@ const CreatePost = () => {
                     setIsSubmitting(true);
                     setError(null);
 
-                    const { scheduledFor, ...rest } = formData;
+                    const { scheduledFor, coverImage, ...rest } = formData;
                     const payload = {
                         ...rest,
                         category: "General",
                         language: "vi",
+                        ...(coverImage ? { coverImage } : {}),
                         ...(scheduledFor ? { scheduledFor } : {}),
                     };
 
