@@ -47,7 +47,8 @@
     "**/*.tsx",
     ".next/types/**/*.ts",
     "src/app/components/providers/ReduxProvider",
-    "src/app/(main)/dashboard/pagetsx"
+    "src/app/(main)/dashboard/pagetsx",
+    "../page.tsx"
   ],
   "exclude": [
     "node_modules"

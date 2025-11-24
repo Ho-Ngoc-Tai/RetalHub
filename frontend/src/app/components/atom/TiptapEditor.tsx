@@ -1,8 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react";
 import {
+    Alert,
     Box,
+    CircularProgress,
     Divider,
     FormControl,
     IconButton,
@@ -34,10 +36,10 @@ import LinkRoundedIcon from "@mui/icons-material/LinkRounded";
 import LinkOffRoundedIcon from "@mui/icons-material/LinkOffRounded";
 import ImageRoundedIcon from "@mui/icons-material/ImageRounded";
 import SmartDisplayRoundedIcon from "@mui/icons-material/SmartDisplayRounded";
+import CloudUploadRoundedIcon from "@mui/icons-material/CloudUploadRounded";
 import ContentCopyRoundedIcon from "@mui/icons-material/ContentCopyRounded";
 import CheckRoundedIcon from "@mui/icons-material/CheckRounded";
 import { alpha } from "@mui/material/styles";
-import type { SxProps, Theme } from "@mui/material/styles";
 import { EditorContent, useEditor } from "@tiptap/react";
 import { Extension } from "@tiptap/core";
 import StarterKit from "@tiptap/starter-kit";
@@ -50,6 +52,8 @@ import Highlight from "@tiptap/extension-highlight";
 import Placeholder from "@tiptap/extension-placeholder";
 import Image from "@tiptap/extension-image";
 import Youtube from "@tiptap/extension-youtube";
+
+import { api } from "@/app/lib/api";
 
 export interface TiptapEditorProps {
     value: string;
@@ -76,75 +80,16 @@ const FONT_SIZES = [
     { label: "40", value: "40px" },
 ];
 
-const glassToolbarSx: SxProps<Theme> = (theme) => ({
-    position: "relative",
-    px: { xs: 1.5, md: 2.25 },
-    py: { xs: 1.25, md: 1.75 },
-    borderRadius: 3,
-    borderWidth: 1,
-    borderStyle: "solid",
-    borderColor: alpha(theme.palette.primary.main, 0.12),
-    background: `linear-gradient(145deg, ${alpha(theme.palette.primary.light, 0.08)}, rgba(255,255,255,0.92))`,
-    boxShadow: "0 24px 60px rgba(15, 23, 42, 0.12)",
-    backdropFilter: "blur(14px)",
-    overflow: "hidden",
-    "&::before": {
-        content: "''",
-        position: "absolute",
-        inset: 0,
-        backgroundImage: `radial-gradient(circle at 1px 1px, ${alpha(theme.palette.primary.main, 0.08)} 1px, transparent 0)`,
-        backgroundSize: "24px 24px",
-        opacity: 0.55,
-        pointerEvents: "none",
-    },
-});
-
-const commandGroupSx: SxProps<Theme> = (theme) => ({
-    display: "flex",
-    alignItems: "center",
-    gap: 6,
-    padding: "6px 10px",
-    borderRadius: 999,
-    backgroundColor: alpha(theme.palette.background.paper, 0.8),
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.08)}`,
-    backdropFilter: "blur(10px)",
-});
-
-const editorPaperSx: SxProps<Theme> = (theme) => ({
-    position: "relative",
-    borderRadius: 3,
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.14)}`,
-    overflow: "hidden",
-    background: `linear-gradient(160deg, rgba(255,255,255,0.98), ${alpha(theme.palette.primary.light, 0.12)})`,
-    minHeight: 320,
-    boxShadow: "0 28px 65px rgba(15, 23, 42, 0.14)",
-});
-
-const metricsPillSx: SxProps<Theme> = (theme) => ({
-    px: 1.5,
-    py: 0.75,
-    borderRadius: 2,
-    backgroundColor: alpha(theme.palette.primary.main, 0.08),
-    border: `1px solid ${alpha(theme.palette.primary.main, 0.12)}`,
-});
 
 export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps) {
     const textColorInputRef = useRef<HTMLInputElement | null>(null);
     const highlightColorInputRef = useRef<HTMLInputElement | null>(null);
+    const imageUploadInputRef = useRef<HTMLInputElement | null>(null);
     const [fontFamily, setFontFamily] = useState<string>(FONT_FAMILIES[0].value);
     const [fontSize, setFontSize] = useState<string>(FONT_SIZES[2].value);
     const [copied, setCopied] = useState(false);
-    const [metrics, setMetrics] = useState({ words: 0, characters: 0, readingTime: "0 phút" });
-
-    const computeMetrics = useCallback((text: string) => {
-        const trimmed = text.trim();
-        const words = trimmed ? trimmed.split(/\s+/).length : 0;
-        const characters = trimmed.length;
-        const minutes = words / 220;
-        const readingTime = words === 0 ? "0 phút" : minutes < 1 ? "≈1 phút" : `${Math.ceil(minutes)} phút`;
-        return { words, characters, readingTime };
-    }, []);
-
+    const [uploadingImage, setUploadingImage] = useState(false);
+    const [uploadError, setUploadError] = useState<string | null>(null);
     const FontFamilyExtension = useMemo(
         () =>
             Extension.create({
@@ -284,6 +229,49 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
         editor.chain().focus().setImage({ src: url }).run();
     };
 
+    const handleTriggerImageUpload = () => {
+        setUploadError(null);
+        imageUploadInputRef.current?.click();
+    };
+
+    const handleImageUpload = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith("image/")) {
+            setUploadError("Chỉ hỗ trợ tải lên tệp hình ảnh");
+            event.target.value = "";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            setUploadingImage(true);
+            const response = await api.post("/posts/upload", formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            const imageUrl: string | undefined = response.data?.url ?? response.data?.path;
+
+            if (!imageUrl) {
+                throw new Error("Không nhận được đường dẫn ảnh từ máy chủ");
+            }
+
+            editor?.chain().focus().setImage({ src: imageUrl }).run();
+            setUploadError(null);
+        } catch (error) {
+            console.error("Tải ảnh thất bại", error);
+            setUploadError("Tải ảnh thất bại. Vui lòng thử lại.");
+        } finally {
+            setUploadingImage(false);
+            event.target.value = "";
+        }
+    };
+
     const handleInsertVideo = () => {
         if (!editor) return;
         const url = window.prompt("Nhập URL YouTube", "https://www.youtube.com/watch?v=");
@@ -314,6 +302,7 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
 
     return (
         <Stack spacing={1.5} sx={{ width: "100%" }}>
+            {uploadError && <Alert severity="error">{uploadError}</Alert>}
             <Paper
                 elevation={0}
                 sx={{
@@ -513,6 +502,25 @@ export function TiptapEditor({ value, onChange, placeholder }: TiptapEditorProps
                                 label="Bỏ liên kết"
                                 onClick={() => editor?.chain().focus().extendMarkRange("link").unsetLink().run()}
                                 disabled={!editor?.isActive("link")}
+                            />
+                            <input
+                                ref={imageUploadInputRef}
+                                type="file"
+                                accept="image/*"
+                                style={{ display: "none" }}
+                                onChange={handleImageUpload}
+                            />
+                            <ToolbarIconButton
+                                icon={
+                                    uploadingImage ? (
+                                        <CircularProgress size={18} thickness={5} />
+                                    ) : (
+                                        <CloudUploadRoundedIcon fontSize="small" />
+                                    )
+                                }
+                                label="Tải ảnh từ máy"
+                                onClick={handleTriggerImageUpload}
+                                disabled={toolbarDisabled || uploadingImage}
                             />
                             <ToolbarIconButton
                                 icon={<ImageRoundedIcon fontSize="small" />}

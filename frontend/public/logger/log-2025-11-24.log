@@ -1,0 +1,9 @@
+2025-11-24T02:50:08.578Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T02:50:09.072Z error: [ERROR 500] Request failed with status code 500 - http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T03:04:27.709Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T03:04:28.179Z error: [ERROR 500] Request failed with status code 500 - http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T03:06:27.186Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T03:10:26.967Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T03:10:41.984Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T03:11:17.011Z info: [REQUEST] POST http://l-api.rentalhub.local:4000http://l-api.rentalhub.local:4000/auth/login
+2025-11-24T03:11:17.441Z info: [RESPONSE 201] {"success":true,"code":200,"message":"success","data":{"user":{"id":"6923ccd152418f30ba46a804","email":"demo@gmail.com","name":null,"role":"tenant","createdAt":"2025-11-24T03:11:13.084Z"},"accessToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIzY2NkMTUyNDE4ZjMwYmE0NmE4MDQiLCJlbWFpbCI6ImRlbW9AZ21haWwuY29tIiwiaWF0IjoxNzYzOTUzODc3LCJleHAiOjE3NjM5NTQ3Nzd9._ajaHl6H8F8qujFz473uG4WjRxTbqBM64Q8z9axri5Q","refreshToken":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiI2OTIzY2NkMTUyNDE4ZjMwYmE0NmE4MDQiLCJlbWFpbCI6ImRlbW9AZ21haWwuY29tIiwiaWF0IjoxNzYzOTUzODc3LCJleHAiOjE3NjQ1NTg2Nzd9.xV0qewoK3ctvrs8PGkN0mL75si8GTJqibu1atdxEjPA","deviceId":null}}
